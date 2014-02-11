@@ -1,0 +1,8 @@
+## Interface: 50400
+## Title: Vortex: Currencies
+## Author: Lombra
+## SavedVariables: Vortex_CurrenciesDB
+## RequiredDeps: Vortex
+
+Core.lua
+UI.lua
