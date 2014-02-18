@@ -1,5 +1,6 @@
 ## Interface: 50400
 ## Title: Vortex: Currencies
+## Version: @project-version@
 ## Author: Lombra
 ## SavedVariables: Vortex_CurrenciesDB
 ## RequiredDeps: Vortex

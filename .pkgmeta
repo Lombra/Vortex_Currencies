@@ -1,1 +1,4 @@
 package-as: Vortex_Currencies
+
+required-dependencies:
+    - vortex

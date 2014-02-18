@@ -2,21 +2,17 @@ local _, addon = ...
 
 local Currencies = Vortex:NewModule("Currencies", {
 	noSearch = true,
-	noSort = true,
 	altUI = true,
 })
 
 function Currencies:BuildList(character)
 	local list = {}
 	for i = 1, addon:GetNumCurrencies(character) do
-		-- local isHeader, name, count, icon = DataStore:GetCurrencyInfo(character, i)
-		local currency = addon.Characters[character][i]
-		if not isHeader then
+		local isHeader, name, id, count = addon:GetCurrencyInfo(character, i)
+		if not isHeader and count > 0 then
 			tinsert(list, {
-				name = currency.name,
-				id = currency.id,
-				count = currency.count,
-				isHeader = currency.isHeader,
+				id = id,
+				count = count,
 			})
 		end
 	end
@@ -26,20 +22,30 @@ end
 function Currencies:UpdateButton(button, object)
 	local name, amount, texturePath, earnedThisWeek, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(object.id)
 	local color = object.count > 0 and HIGHLIGHT_FONT_COLOR or GRAY_FONT_COLOR
-	button.label:SetFormattedText("%s (%d)", object.name, object.count)
+	button.label:SetFormattedText("%s (%d)", name, object.count)
 	button.label:SetTextColor(color.r, color.g, color.b)
 	button.icon:SetTexture(texturePath)
 	button.item = GetCurrencyLink(object.id)
 end
 
+function Currencies.sort(a, b)
+	return GetCurrencyInfo(a.id) < GetCurrencyInfo(b.id)
+end
+
 local function addTooltipInfo(self, id)
+	if not Vortex.db.tooltip then
+		return
+	end
+	if Vortex.db.tooltipModifier and not IsModifierKeyDown() then
+		return
+	end
 	local numChars = 0
 	local total = 0
 	for i, character in ipairs(Vortex:GetCharacters()) do
 		local accountKey, realmKey, charKey = strsplit(".", character)
-		local isHeader, count = DataStore:GetCurrencyInfoByName(character, id)
+		local name, count = addon:GetCurrencyInfoByID(character, id)
 		if count and count > 0 then
-			self:AddLine(count.." "..charKey)
+			self:AddLine("|cffffffff"..count.."|r "..charKey)
 			numChars = numChars + 1
 			total = total + count
 		end
@@ -52,25 +58,26 @@ local function addTooltipInfo(self, id)
 end
 
 hooksecurefunc(GameTooltip, "SetCurrencyByID", function(self, id)
-	addTooltipInfo(self, GetCurrencyInfo(id))
+	addTooltipInfo(self, id)
 end)
 
 hooksecurefunc(GameTooltip, "SetCurrencyToken", function(self, index)
-	addTooltipInfo(self, GetCurrencyListInfo(index))
+	local link = GetCurrencyListLink(index)
+	addTooltipInfo(self, link and tonumber(link:match("currency:(%d+)")))
 end)
 
 hooksecurefunc(GameTooltip, "SetBackpackToken", function(self, index)
 	local name, count, icon, currencyID = GetBackpackCurrencyInfo(index)
-	addTooltipInfo(self, GetBackpackCurrencyInfo(index))
+	addTooltipInfo(self, currencyID)
 end)
 
 hooksecurefunc(GameTooltip, "SetHyperlink", function(self, link)
 	local id = link:match("currency:(%d+)")
-	addTooltipInfo(self, id and GetCurrencyInfo(tonumber(id)))
+	addTooltipInfo(self, id and tonumber(id))
 end)
 
 hooksecurefunc(GameTooltip, "SetMerchantCostItem", function(self, index, itemIndex)
-	addTooltipInfo(self, select(4, GetMerchantItemCostItem(index, itemIndex)))
+	addTooltipInfo(self, addon:GetCurrencyID(select(4, GetMerchantItemCostItem(index, itemIndex))))
 end)
 
 local scrollFrame
@@ -119,34 +126,30 @@ do
 		middle:SetTexture([[Interface\Buttons\CollapsibleHeader]])
 		middle:SetTexCoord(0.48046875, 0.98046875, 0.01562500, 0.26562500)
 		
-		-- local left = button:CreateTexture(nil, "HIGHLIGHT")
-		-- left:SetBlendMode("ADD")
-		-- left:SetPoint("LEFT", -5, 0)
-		-- left:SetSize(26, 18)
-		-- left:SetTexture([[Interface\Buttons\CollapsibleHeader]])
-		-- left:SetTexCoord(18 / 256, 44 / 256, 18 / 64, 36 / 64)
+		local left = button:CreateTexture(nil, "HIGHLIGHT")
+		left:SetBlendMode("ADD")
+		left:SetPoint("LEFT", -5, 0)
+		left:SetSize(26, 18)
+		left:SetTexture([[Interface\Buttons\CollapsibleHeader]])
+		left:SetTexCoord(18 / 256, 44 / 256, 18 / 64, 36 / 64)
+		button.hl = left
 		
-		-- local right = button:CreateTexture(nil, "HIGHLIGHT")
-		-- right:SetBlendMode("ADD")
-		-- right:SetPoint("RIGHT", 5, 0)
-		-- right:SetSize(26, 18)
-		-- right:SetTexture([[Interface\Buttons\CollapsibleHeader]])
-		-- right:SetTexCoord(18 / 256, 44 / 256, 0, 18 / 64)
+		local right = button:CreateTexture(nil, "HIGHLIGHT")
+		right:SetBlendMode("ADD")
+		right:SetPoint("RIGHT", 5, 0)
+		right:SetSize(26, 18)
+		right:SetTexture([[Interface\Buttons\CollapsibleHeader]])
+		right:SetTexCoord(18 / 256, 44 / 256, 0, 18 / 64)
+		button.hr = right
 		
-		-- local middle = button:CreateTexture(nil, "HIGHLIGHT")
-		-- middle:SetBlendMode("ADD")
-		-- middle:SetPoint("LEFT", left, "RIGHT")
-		-- middle:SetPoint("RIGHT", right, "LEFT")
-		-- middle:SetHeight(18)
-		-- middle:SetTexture([[Interface\Buttons\CollapsibleHeader]])
-		-- middle:SetTexCoord(0, 18 / 256, 0, 18 / 64)
-		
-		-- local highlight = button:CreateTexture()
-		-- highlight:SetPoint("TOPLEFT", 3, -2)
-		-- highlight:SetPoint("BOTTOMRIGHT", -3, 2)
-		-- highlight:SetTexture([[Interface\TokenFrame\UI-TokenFrame-CategoryButton]])
-		-- highlight:SetTexCoord(0, 1, 0.609375, 0.796875)
-		-- button:SetHighlightTexture(highlight)
+		local middle = button:CreateTexture(nil, "HIGHLIGHT")
+		middle:SetBlendMode("ADD")
+		middle:SetPoint("LEFT", left, "RIGHT")
+		middle:SetPoint("RIGHT", right, "LEFT")
+		middle:SetHeight(18)
+		middle:SetTexture([[Interface\Buttons\CollapsibleHeader]])
+		middle:SetTexCoord(0, 18 / 256, 0, 18 / 64)
+		button.hm = middle
 		
 		return button
 	end
@@ -161,7 +164,7 @@ do
 			button:EnableDrawLayer("BORDER")
 		else
 			local name, _, texturePath = GetCurrencyInfo(object.id)
-			button.label:SetText(object.name)
+			button.label:SetText(name)
 			if object.count > 0 then
 				button.label:SetFontObject("GameFontHighlight")
 				button.count:SetFontObject("GameFontHighlight")
@@ -174,6 +177,10 @@ do
 			button.icon:SetTexture(texturePath)
 			button:DisableDrawLayer("BORDER")
 		end
+		button.hl:SetShown(object.isHeader)
+		button.hr:SetShown(object.isHeader)
+		button.hm:SetShown(object.isHeader)
+		button:GetHighlightTexture():SetShown(not object.isHeader)
 		button.item = object.id and GetCurrencyLink(object.id)
 		
 		if button.showingTooltip then
@@ -203,7 +210,7 @@ do
 		HybridScrollFrame_Update(self, #list * self.buttonHeight, numButtons * self.buttonHeight)
 	end
 	
-	local name = "lool"
+	local name = "Vortex_CurrenciesScrollFrame"
 	scrollFrame = CreateFrame("ScrollFrame", name, Currencies.ui, "HybridScrollFrameTemplate")
 	scrollFrame:SetPoint("TOP", 0, -4)
 	scrollFrame:SetPoint("LEFT", 4, 0)
@@ -211,18 +218,13 @@ do
 	scrollFrame.update = function()
 		update(scrollFrame)
 	end
-	-- _G[name] = nil
+	_G[name] = nil
 	
 	local scrollBar = CreateFrame("Slider", nil, scrollFrame, "HybridScrollBarTemplate")
 	scrollBar:ClearAllPoints()
 	scrollBar:SetPoint("TOP", 0, -12)
 	scrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", 0, 11)
 	scrollBar.doNotHide = true
-	scrollBar:HookScript("OnValueChanged", function(self, value, isUserInput)
-		-- if isUserInput then
-			-- self:SetValue(floor(value))
-		-- end
-	end)
 	
 	local buttons = {}
 	scrollFrame.buttons = buttons
