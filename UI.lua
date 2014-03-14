@@ -1,7 +1,7 @@
 local _, addon = ...
 
 local Currencies = Vortex:NewModule("Currencies", {
-	noSearch = true,
+	items = false,
 	altUI = true,
 })
 
@@ -13,6 +13,7 @@ function Currencies:BuildList(character)
 			tinsert(list, {
 				id = id,
 				count = count,
+				linkType = "currency",
 			})
 		end
 	end
@@ -31,6 +32,14 @@ end
 function Currencies.sort(a, b)
 	return GetCurrencyInfo(a.id) < GetCurrencyInfo(b.id)
 end
+
+Vortex:AddObjectType("currency", function(link)
+	local name, _, texturePath = GetCurrencyInfo(strmatch(link, "currency:(%d+)"))
+	return {
+		name = name,
+		icon = texturePath,
+	}
+end)
 
 local function addTooltipInfo(self, id)
 	if not Vortex.db.tooltip then
@@ -210,17 +219,15 @@ do
 		HybridScrollFrame_Update(self, #list * self.buttonHeight, numButtons * self.buttonHeight)
 	end
 	
-	local name = "Vortex_CurrenciesScrollFrame"
-	scrollFrame = CreateFrame("ScrollFrame", name, Currencies.ui, "HybridScrollFrameTemplate")
+	scrollFrame = Vortex:CreateScrollFrame("Hybrid", Currencies.ui)
 	scrollFrame:SetPoint("TOP", 0, -4)
 	scrollFrame:SetPoint("LEFT", 4, 0)
 	scrollFrame:SetPoint("BOTTOMRIGHT", -23, 4)
 	scrollFrame.update = function()
 		update(scrollFrame)
 	end
-	_G[name] = nil
 	
-	local scrollBar = CreateFrame("Slider", nil, scrollFrame, "HybridScrollBarTemplate")
+	local scrollBar = scrollFrame.scrollBar
 	scrollBar:ClearAllPoints()
 	scrollBar:SetPoint("TOP", 0, -12)
 	scrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", 0, 11)
