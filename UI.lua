@@ -5,6 +5,8 @@ local Currencies = Vortex:NewModule("Currencies", {
 	altUI = true,
 })
 
+addon.ui = Currencies
+
 function Currencies:BuildList(character)
 	local list = {}
 	for i = 1, addon:GetNumCurrencies(character) do

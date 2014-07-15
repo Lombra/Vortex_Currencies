@@ -83,6 +83,8 @@ function addon:ScanCurrencies()
 	end
 	
 	RestoreHeaders()
+	
+	self.ui:Refresh()
 end
 
 function addon:GetNumCurrencies(character)
