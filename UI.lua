@@ -98,15 +98,61 @@ function Currencies:UpdateUI()
 end
 
 do
-	local BUTTON_HEIGHT = 16
-	local BUTTON_OFFSET = 4
-	
-	local function createButton(frame)
-		local button = CreateFrame("Button", nil, frame)
+	scrollFrame = Vortex:CreateScrollFrame("Hybrid", Currencies.ui)
+	scrollFrame:SetPoint("TOP", 0, -4)
+	scrollFrame:SetPoint("LEFT", 4, 0)
+	scrollFrame:SetPoint("BOTTOMRIGHT", -20, 4)
+	scrollFrame:SetButtonHeight(16)
+	scrollFrame.initialOffsetX = 1
+	scrollFrame.initialOffsetY = -2
+	scrollFrame.offsetY = -4
+	scrollFrame.getNumItems = function()
+		return #addon.Characters[Vortex:GetSelectedCharacter()]
+	end
+	scrollFrame.updateButton = function(button, index)
+		local object = addon.Characters[Vortex:GetSelectedCharacter()][index]
+		if object.isHeader then
+			button.label:SetText(object.name)
+			button.label:SetFontObject("GameFontNormal")
+			button.label:SetPoint("LEFT", 22, 0)
+			button.count:SetText(nil)
+			button.icon:SetTexture(nil)
+			button:EnableDrawLayer("BORDER")
+		else
+			local name, _, texturePath = GetCurrencyInfo(object.id)
+			button.label:SetText(name)
+			if object.count > 0 then
+				button.label:SetFontObject("GameFontHighlight")
+				button.count:SetFontObject("GameFontHighlight")
+			else
+				button.label:SetFontObject("GameFontDisable")
+				button.count:SetFontObject("GameFontDisable")
+			end
+			button.label:SetPoint("LEFT", 11, 0)
+			button.count:SetText(object.count)
+			button.icon:SetTexture(texturePath)
+			button:DisableDrawLayer("BORDER")
+		end
+		button.hl:SetShown(object.isHeader)
+		button.hr:SetShown(object.isHeader)
+		button.hm:SetShown(object.isHeader)
+		button:GetHighlightTexture():SetShown(not object.isHeader)
+		button.PostEnter = object.id and postEnter
+		button.item = object.id and GetCurrencyLink(object.id, object.count)
+		
+		if GetMouseFocus() == button then
+			if not object.isHeader then
+				button:OnEnter()
+			else
+				button:OnLeave()
+			end
+		end
+	end
+	scrollFrame.createButton = function(parent)
+		local button = CreateFrame("Button", nil, parent)
 		Vortex:SetupItemButton(button)
-		button.x = 28
-		button:SetHeight(BUTTON_HEIGHT)
 		button:SetPoint("RIGHT", -5, 0)
+		button.x = 28
 		
 		button.label = button:CreateFontString(nil, nil, "GameFontHighlightLeft")
 		button:SetHighlightTexture([[Interface\QuestFrame\UI-QuestTitleHighlight]])
@@ -164,89 +210,11 @@ do
 		
 		return button
 	end
-	
-	local function updateButton(button, object)
-		if object.isHeader then
-			button.label:SetText(object.name)
-			button.label:SetFontObject("GameFontNormal")
-			button.label:SetPoint("LEFT", 22, 0)
-			button.count:SetText(nil)
-			button.icon:SetTexture(nil)
-			button:EnableDrawLayer("BORDER")
-		else
-			local name, _, texturePath = GetCurrencyInfo(object.id)
-			button.label:SetText(name)
-			if object.count > 0 then
-				button.label:SetFontObject("GameFontHighlight")
-				button.count:SetFontObject("GameFontHighlight")
-			else
-				button.label:SetFontObject("GameFontDisable")
-				button.count:SetFontObject("GameFontDisable")
-			end
-			button.label:SetPoint("LEFT", 11, 0)
-			button.count:SetText(object.count)
-			button.icon:SetTexture(texturePath)
-			button:DisableDrawLayer("BORDER")
-		end
-		button.hl:SetShown(object.isHeader)
-		button.hr:SetShown(object.isHeader)
-		button.hm:SetShown(object.isHeader)
-		button:GetHighlightTexture():SetShown(not object.isHeader)
-		button.item = object.id and GetCurrencyLink(object.id)
-		
-		if button.showingTooltip then
-			if not isHeader then
-				button:OnEnter()
-			else
-				GameTooltip:Hide()
-			end
-		end
-	end
-	
-	local function update(self)
-		local list = addon.Characters[Vortex:GetSelectedCharacter()]
-		local offset = HybridScrollFrame_GetOffset(self)
-		local buttons = self.buttons
-		local numButtons = #buttons
-		for i = 1, numButtons do
-			local index = offset + i
-			local object = list[index]
-			local button = buttons[i]
-			if object then
-				updateButton(button, object)
-			end
-			button:SetShown(object ~= nil)
-		end
-		
-		HybridScrollFrame_Update(self, #list * self.buttonHeight, numButtons * self.buttonHeight)
-	end
-	
-	scrollFrame = Vortex:CreateScrollFrame("Hybrid", Currencies.ui)
-	scrollFrame:SetPoint("TOP", 0, -4)
-	scrollFrame:SetPoint("LEFT", 4, 0)
-	scrollFrame:SetPoint("BOTTOMRIGHT", -23, 4)
-	scrollFrame.update = function()
-		update(scrollFrame)
-	end
+	scrollFrame:CreateButtons()
 	
 	local scrollBar = scrollFrame.scrollBar
 	scrollBar:ClearAllPoints()
-	scrollBar:SetPoint("TOP", 0, -12)
-	scrollBar:SetPoint("BOTTOMLEFT", scrollFrame, "BOTTOMRIGHT", 0, 11)
+	scrollBar:SetPoint("TOPRIGHT", Currencies.ui, 0, -18)
+	scrollBar:SetPoint("BOTTOMRIGHT", Currencies.ui, 0, 16)
 	scrollBar.doNotHide = true
-	
-	local buttons = {}
-	scrollFrame.buttons = buttons
-	
-	for i = 1, (ceil(scrollFrame:GetHeight() / BUTTON_HEIGHT) + 1) do
-		local button = createButton(scrollFrame.scrollChild)
-		if i == 1 then
-			button:SetPoint("TOPLEFT", 1, -2)
-		else
-			button:SetPoint("TOPLEFT", buttons[i - 1], "BOTTOMLEFT", 0, -BUTTON_OFFSET)
-		end
-		buttons[i] = button
-	end
-	
-	HybridScrollFrame_CreateButtons(scrollFrame, nil, nil, nil, nil, nil, nil, -BUTTON_OFFSET)
 end
