@@ -23,23 +23,23 @@ function Currencies:BuildList(character)
 end
 
 function Currencies:UpdateButton(button, object)
-	local name, amount, texturePath, earnedThisWeek, weeklyMax, totalMax, isDiscovered = GetCurrencyInfo(object.id)
+	local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(object.id)
 	local color = object.count > 0 and HIGHLIGHT_FONT_COLOR or GRAY_FONT_COLOR
-	button.label:SetFormattedText("%s (%d)", name, object.count)
+	button.label:SetFormattedText("%s (%d)", currencyInfo.name, object.count)
 	button.label:SetTextColor(color.r, color.g, color.b)
-	button.icon:SetTexture(texturePath)
-	button.item = GetCurrencyLink(object.id)
+	button.icon:SetTexture(currencyInfo.iconFileID)
+	button.item = C_CurrencyInfo.GetCurrencyLink(object.id, object.count)
 end
 
 function Currencies.sort(a, b)
-	return GetCurrencyInfo(a.id) < GetCurrencyInfo(b.id)
+	return C_CurrencyInfo.GetCurrencyInfo(a.id).name < C_CurrencyInfo.GetCurrencyInfo(b.id).name
 end
 
 Vortex:AddObjectType("currency", function(link)
-	local name, _, texturePath = GetCurrencyInfo(strmatch(link, "currency:(%d+)"))
+	local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(strmatch(link, "currency:(%d+)"))
 	return {
-		name = name,
-		icon = texturePath,
+		name = currencyInfo.name,
+		icon = currencyInfo.iconFileID,
 	}
 end)
 
@@ -73,12 +73,12 @@ hooksecurefunc(GameTooltip, "SetCurrencyByID", function(self, id)
 end)
 
 hooksecurefunc(GameTooltip, "SetCurrencyToken", function(self, index)
-	local link = GetCurrencyListLink(index)
+	local link = C_CurrencyInfo.GetCurrencyListLink(index)
 	addTooltipInfo(self, link and tonumber(link:match("currency:(%d+)")))
 end)
 
 hooksecurefunc(GameTooltip, "SetBackpackToken", function(self, index)
-	local name, count, icon, currencyID = GetBackpackCurrencyInfo(index)
+	local name, count, icon, currencyID = C_CurrencyInfo.GetBackpackCurrencyInfo(index)
 	addTooltipInfo(self, currencyID)
 end)
 
@@ -119,8 +119,8 @@ do
 			button.icon:SetTexture(nil)
 			button:EnableDrawLayer("BORDER")
 		else
-			local name, _, texturePath = GetCurrencyInfo(object.id)
-			button.label:SetText(name)
+			local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(object.id)
+			button.label:SetText(currencyInfo.name)
 			if object.count > 0 then
 				button.label:SetFontObject("GameFontHighlight")
 				button.count:SetFontObject("GameFontHighlight")
@@ -130,7 +130,7 @@ do
 			end
 			button.label:SetPoint("LEFT", 11, 0)
 			button.count:SetText(object.count)
-			button.icon:SetTexture(texturePath)
+			button.icon:SetTexture(currencyInfo.iconFileID)
 			button:DisableDrawLayer("BORDER")
 		end
 		button.hl:SetShown(object.isHeader)
@@ -138,7 +138,7 @@ do
 		button.hm:SetShown(object.isHeader)
 		button:GetHighlightTexture():SetShown(not object.isHeader)
 		button.PostEnter = object.id and postEnter
-		button.item = object.id and GetCurrencyLink(object.id, object.count)
+		button.item = object.id and C_CurrencyInfo.GetCurrencyLink(object.id, object.count)
 		
 		if GetMouseFocus() == button then
 			if not object.isHeader then
