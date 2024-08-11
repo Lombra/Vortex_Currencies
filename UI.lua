@@ -50,6 +50,10 @@ local function addTooltipInfo(self, id)
 	if Vortex.db.tooltipModifier and not IsModifierKeyDown() then
 		return
 	end
+	local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(id)
+	if currencyInfo.isAccountWide then
+		return
+	end
 	local numChars = 0
 	local total = 0
 	for i, character in ipairs(Vortex:GetCharacters()) do
