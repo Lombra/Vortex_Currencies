@@ -1,4 +1,4 @@
-## Interface: 90001
+## Interface: 110000
 ## Title: Vortex: Currencies
 ## Version: @project-version@
 ## Author: Lombra

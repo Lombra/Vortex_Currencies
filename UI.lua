@@ -140,7 +140,7 @@ do
 		button.PostEnter = object.id and postEnter
 		button.item = object.id and C_CurrencyInfo.GetCurrencyLink(object.id, object.count)
 		
-		if GetMouseFocus() == button then
+		if button:IsMouseMotionFocus() then
 			if not object.isHeader then
 				button:OnEnter()
 			else
